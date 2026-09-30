@@ -107,6 +107,12 @@
             return [nom(a), cerrado ? anualDe(a, y) : (a === 'GIB' ? null : sumaAnio(AE.pax[a], y, mesesAct))];
           }), 'Pasajeros ' + y);
         };
+        /* Serie anual de un aeropuerto: años cerrados. Gibraltar trae su serie oficial desde 2001. */
+        var evolucionAp = function (a) {
+          var x = a === 'GIB' ? GIB.anual.x : C.anual.x;
+          var v = a === 'GIB' ? GIB.anual.pax : C.anual.x.map(function (y) { return anualDe(a, y); });
+          return { type: 'bar', xType: 'anual', x: x, yFormat: 'num', series: [{ name: 'Pasajeros ' + nom(a), data: v }] };
+        };
         return {
           hero: {
             valor: surTotal, label: 'Pasajeros en los aeropuertos del sur en ' + ref + ' (Andalucía y Gibraltar)',
@@ -136,6 +142,13 @@
                 spec: pasajerosAnio
               },
               spec: pasajerosAnio(ref)
+            },
+            {
+              titulo: 'Pasajeros al año por aeropuerto', sub: 'Llegadas más salidas, años completos',
+              chips: [CH_ANUAL], fuente: F_MIX, alto: 'tall',
+              nota: 'Aena, desde 2018; Gibraltar, su serie oficial desde 2001. El año en curso no se incluye hasta que se cierre.',
+              control: { label: 'Aeropuerto', valor: 'AGP', opciones: opcionesAp(TODOS), spec: evolucionAp },
+              spec: evolucionAp('AGP')
             },
             {
               titulo: 'Recuperación frente a 2019', sub: 'Variación de pasajeros de ' + ref + ' sobre 2019, último año prepandemia',
