@@ -1,0 +1,51 @@
+name: Actualizar datos
+
+# Cada lunes a las 05:30 UTC. Aena publica el mes anterior hacia el día 10-15,
+# Eurostat cuando España reporta y Gibraltar una vez al año: una pasada semanal
+# recoge cada novedad sin estar pendiente de fechas. Si no hay nada nuevo, no
+# se hace commit. Se puede lanzar a mano desde la pestaña Actions.
+on:
+  schedule:
+    - cron: "30 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  recolectar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Recolectar
+        # Si el colector aborta (datos peores que los publicados) el paso falla
+        # y data.js se queda como estaba. Es el comportamiento que se quiere.
+        run: python pipeline/build_data.py
+
+      - name: Publicar si hay cambios
+        shell: bash
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # La marca "actualizado" cambia en cada pasada: se compara sin ella,
+          # para publicar solo cuando cambian las cifras.
+          quitar() { sed -E 's/"actualizado":"[^"]*"//'; }
+          if git diff --quiet -- pipeline/cache &&              diff <(git show HEAD:data/data.js | quitar) <(quitar < data/data.js) > /dev/null; then
+            echo "Sin cambios en los datos."
+            exit 0
+          fi
+          git add data/data.js pipeline/cache
+          git commit -m "Datos actualizados $(date -u +%Y-%m-%d)"
+          git push
