@@ -100,6 +100,13 @@
                    delta: varInt(AE.pax[a], ultimoMes), deltaRef: 'interanual', serie: (AE.pax[a] || []).slice(-24) };
         };
         var gIdx = GIB.anual.x.length - 1;
+        /* Año cerrado: dato anual común. Año en curso: acumulado de Aena (Gibraltar aún no publica). */
+        var pasajerosAnio = function (y) {
+          var cerrado = C.anual.x.indexOf(y) >= 0;
+          return barh(TODOS.map(function (a) {
+            return [nom(a), cerrado ? anualDe(a, y) : (a === 'GIB' ? null : sumaAnio(AE.pax[a], y, mesesAct))];
+          }), 'Pasajeros ' + y);
+        };
         return {
           hero: {
             valor: surTotal, label: 'Pasajeros en los aeropuertos del sur en ' + ref + ' (Andalucía y Gibraltar)',
@@ -118,9 +125,17 @@
           ],
           cards: [
             {
-              titulo: 'Pasajeros en ' + ref, sub: 'Llegadas más salidas, año completo',
+              titulo: 'Pasajeros por año', sub: 'Llegadas más salidas',
               chips: [CH_ANUAL, CH_COMUN], fuente: F_MIX, alto: 'tall',
-              spec: barh(TODOS.map(function (a) { return [nom(a), anualDe(a, ref)]; }), 'Pasajeros')
+              nota: 'El año en curso suma de enero al último mes publicado por Aena y no incluye Gibraltar, que solo publica años cerrados.',
+              control: {
+                label: 'Año', valor: ref,
+                opciones: (anioAct && C.anual.x.indexOf(anioAct) < 0
+                  ? [{ v: anioAct, txt: anioAct + ' (ene-' + MES_CORTO[mesesAct - 1] + ')' }] : [])
+                  .concat(C.anual.x.slice().reverse().map(function (y) { return { v: y, txt: y }; })),
+                spec: pasajerosAnio
+              },
+              spec: pasajerosAnio(ref)
             },
             {
               titulo: 'Recuperación frente a 2019', sub: 'Variación de pasajeros de ' + ref + ' sobre 2019, último año prepandemia',
